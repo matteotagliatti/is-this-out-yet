@@ -1,4 +1,6 @@
-import { useRef, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { useState } from "react"
+import { CircleFlag } from "react-circle-flags"
 import MovieSearch from "@/components/movie-search"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -31,7 +33,6 @@ import {
   type CountryWatchOptions,
   type Movie,
   type WatchProvider,
-  type WatchProviders,
 } from "@/lib/tmdb"
 
 const providerGroups: {
@@ -44,6 +45,20 @@ const providerGroups: {
   { key: "free", label: "Free" },
   { key: "ads", label: "Ads" },
 ]
+
+function CountryLabel({ code, label }: { code: string; label: string }) {
+  return (
+    <span className="flex items-center gap-2">
+      <CircleFlag
+        className="shrink-0"
+        countryCode={code.toLowerCase()}
+        height={16}
+        width={16}
+      />
+      <span>{label}</span>
+    </span>
+  )
+}
 
 function ProviderList({ providers }: { providers: WatchProvider[] }) {
   return (
@@ -70,37 +85,21 @@ function ProviderList({ providers }: { providers: WatchProvider[] }) {
 export function App() {
   const [country, setCountry] = useState("US")
   const [movie, setMovie] = useState<Movie | null>(null)
-  const [providers, setProviders] = useState<WatchProviders | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const requestId = useRef(0)
+  const movieId = movie?.id ?? null
+  const providersQuery = useQuery({
+    enabled: movieId != null,
+    queryFn: () => {
+      if (movieId == null) throw new Error("Missing movie")
+      return getWatchProviders(movieId)
+    },
+    queryKey: ["watch-providers", movieId],
+  })
 
-  function handleSelect(next: Movie | null) {
-    const id = ++requestId.current
-    setMovie(next)
-    setProviders(null)
-    setError(null)
-
-    if (!next) {
-      setIsLoading(false)
-      return
-    }
-
-    setIsLoading(true)
-    getWatchProviders(next.id)
-      .then((result) => {
-        if (requestId.current === id) setProviders(result)
-      })
-      .catch(() => {
-        if (requestId.current === id) {
-          setError("Couldn't load where to watch this movie.")
-          setProviders(null)
-        }
-      })
-      .finally(() => {
-        if (requestId.current === id) setIsLoading(false)
-      })
-  }
+  const isLoading = providersQuery.isLoading
+  const error = providersQuery.isError
+    ? "Couldn't load where to watch this movie."
+    : null
+  const providers = providersQuery.data
 
   const selectedCountry = countryLabel(country)
   const countryOptions = providers?.results[country]
@@ -114,12 +113,10 @@ export function App() {
   return (
     <div className="flex min-h-svh justify-center p-6">
       <div className="flex w-full max-w-md min-w-0 flex-col gap-6">
-        <h1 className="font-heading text-2xl font-semibold">
-          Is this out yet?
-        </h1>
-
-        <Field className="w-full" name="country">
-          <FieldLabel>Country</FieldLabel>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="font-heading text-2xl font-semibold">
+            Is this 🎬 out yet?
+          </h1>
           <Select
             items={countries}
             onValueChange={(value) => {
@@ -127,22 +124,37 @@ export function App() {
             }}
             value={country}
           >
-            <SelectTrigger>
-              <SelectValue />
+            <SelectTrigger
+              aria-label={`Country, ${selectedCountry}`}
+              className="size-9 w-9 min-w-0 shrink-0 justify-center px-0 [&_[data-slot=select-icon]]:hidden"
+            >
+              <SelectValue className="flex flex-none items-center">
+                {(value: string | null) =>
+                  value ? (
+                    <CircleFlag
+                      alt=""
+                      countryCode={value.toLowerCase()}
+                      height={20}
+                      title={countryLabel(value)}
+                      width={20}
+                    />
+                  ) : null
+                }
+              </SelectValue>
             </SelectTrigger>
-            <SelectPopup>
+            <SelectPopup align="end">
               {countries.map((item) => (
                 <SelectItem key={item.value} value={item.value}>
-                  {item.label}
+                  <CountryLabel code={item.value} label={item.label} />
                 </SelectItem>
               ))}
             </SelectPopup>
           </Select>
-        </Field>
+        </div>
 
         <Field className="w-full" name="movie">
           <FieldLabel>Movie</FieldLabel>
-          <MovieSearch onSelect={handleSelect} />
+          <MovieSearch onSelect={setMovie} />
         </Field>
 
         {movie ? (

@@ -1,5 +1,6 @@
 "use client"
 
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 import { useEffect, useRef, useState } from "react"
 import {
@@ -13,44 +14,46 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { searchMovies, type Movie } from "@/lib/tmdb"
 
+function useDebouncedValue(value: string, delay: number) {
+  const [debounced, setDebounced] = useState(value)
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(timeoutId)
+  }, [value, delay])
+
+  return debounced
+}
+
 export default function MovieSearch({
   onSelect,
 }: {
   onSelect: (movie: Movie | null) => void
 }) {
   const [searchValue, setSearchValue] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [searchResults, setSearchResults] = useState<Movie[]>([])
-  const [error, setError] = useState<string | null>(null)
   const highlightedRef = useRef<Movie | undefined>(undefined)
   const selectedTitleRef = useRef<string | null>(null)
+  const debouncedQuery = useDebouncedValue(searchValue.trim(), 300)
+  const moviesQuery = useQuery({
+    enabled: debouncedQuery.length > 0,
+    placeholderData: keepPreviousData,
+    queryFn: () => searchMovies(debouncedQuery),
+    queryKey: ["movies", debouncedQuery],
+  })
 
-  useEffect(() => {
-    if (!searchValue || searchValue === selectedTitleRef.current) return
-
-    let ignore = false
-    const timeoutId = setTimeout(async () => {
-      try {
-        const results = await searchMovies(searchValue)
-        if (!ignore) setSearchResults(results)
-      } catch {
-        if (!ignore) {
-          setError("Failed to fetch movies. Please try again.")
-          setSearchResults([])
-        }
-      } finally {
-        if (!ignore) setIsLoading(false)
-      }
-    }, 300)
-
-    return () => {
-      clearTimeout(timeoutId)
-      ignore = true
-    }
-  }, [searchValue])
+  const hasQuery = searchValue.trim().length > 0
+  const searchResults =
+    hasQuery && !moviesQuery.isError ? (moviesQuery.data ?? []) : []
+  const isSearching =
+    hasQuery &&
+    !moviesQuery.isError &&
+    (searchValue.trim() !== debouncedQuery || moviesQuery.isFetching)
+  const error = moviesQuery.isError
+    ? "Failed to fetch movies. Please try again."
+    : null
 
   let status: ReactNode = `${searchResults.length} result${searchResults.length === 1 ? "" : "s"} found`
-  if (isLoading) {
+  if (isSearching) {
     status = (
       <span className="flex items-center justify-between gap-2 text-muted-foreground">
         Searching...
@@ -61,15 +64,13 @@ export default function MovieSearch({
     status = (
       <span className="text-sm font-normal text-destructive">{error}</span>
     )
-  } else if (searchResults.length === 0 && searchValue) {
+  } else if (searchResults.length === 0 && hasQuery) {
     status = (
       <span className="text-sm font-normal text-muted-foreground">
         No movies found for "{searchValue}"
       </span>
     )
   }
-
-  const shouldRenderPopup = searchValue !== ""
 
   return (
     <Autocomplete
@@ -104,15 +105,6 @@ export default function MovieSearch({
         ) {
           selectedTitleRef.current = null
           onSelect(null)
-          if (value) {
-            setIsLoading(true)
-            setError(null)
-            setSearchResults([])
-          } else {
-            setSearchResults([])
-            setIsLoading(false)
-            setError(null)
-          }
         }
       }}
       value={searchValue}
@@ -122,8 +114,8 @@ export default function MovieSearch({
         className="w-full"
         placeholder="Search for a movie"
       />
-      {shouldRenderPopup && (
-        <AutocompletePopup aria-busy={isLoading || undefined}>
+      {hasQuery && (
+        <AutocompletePopup aria-busy={isSearching || undefined}>
           <AutocompleteStatus className="text-muted-foreground">
             {status}
           </AutocompleteStatus>
