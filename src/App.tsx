@@ -38,8 +38,10 @@ import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { countries, countryLabel } from "@/lib/countries"
 import {
+  getReleaseDates,
   getWatchProviders,
   providerLogoUrl,
+  releaseForCountry,
   type CountryWatchOptions,
   type Movie,
   type WatchProvider,
@@ -167,6 +169,17 @@ export function App() {
       providers: countryOptions?.[group.key] ?? [],
     }))
     .filter((group) => group.providers.length > 0)
+  const unavailable =
+    movieId != null && providersQuery.isSuccess && groups.length === 0
+  const releaseQuery = useQuery({
+    enabled: unavailable,
+    queryFn: () => {
+      if (movieId == null) throw new Error("Missing movie")
+      return getReleaseDates(movieId)
+    },
+    queryKey: ["digital-release-dates", movieId],
+  })
+  const release = releaseForCountry(releaseQuery.data, country)
 
   return (
     <div className="flex min-h-svh justify-center p-6">
@@ -246,14 +259,29 @@ export function App() {
               ) : null}
 
               {!isLoading && !error && groups.length === 0 ? (
-                <Empty className="px-0 py-4 md:py-6">
-                  <EmptyHeader>
-                    <EmptyTitle>Not available</EmptyTitle>
-                    <EmptyDescription>
-                      Not available in {selectedCountry}.
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
+                releaseQuery.isLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Spinner className="size-4" />
+                    Checking the digital release date...
+                  </div>
+                ) : (
+                  <Empty className="px-0 py-4 md:py-6">
+                    <EmptyHeader>
+                      <EmptyTitle>
+                        {release?.upcoming ? "Not out yet" : "Not available"}
+                      </EmptyTitle>
+                      <EmptyDescription>
+                        {releaseQuery.isError
+                          ? `Couldn't load the digital release date for ${selectedCountry}.`
+                          : release?.upcoming
+                            ? `Digital release in ${selectedCountry} on ${release.date}.`
+                            : release
+                              ? `Digital release in ${selectedCountry} was ${release.date}.`
+                              : `No digital release date in ${selectedCountry} yet.`}
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
+                )
               ) : null}
 
               {!isLoading && !error && groups.length > 0 ? (

@@ -23,6 +23,20 @@ export type WatchProviders = {
   results: Record<string, CountryWatchOptions>
 }
 
+export type CountryRelease = {
+  date: string
+}
+
+export type ReleaseDates = {
+  id: number
+  results: Record<string, CountryRelease[]>
+}
+
+export type MovieRelease = {
+  date: string
+  upcoming: boolean
+}
+
 const TMDB_API = "https://api.themoviedb.org/3"
 
 type TmdbMovie = {
@@ -54,6 +68,21 @@ type TmdbWatchResponse = {
   id: number
   results: Record<string, TmdbCountryProviders>
 }
+
+type TmdbRelease = {
+  release_date: string
+  type: number
+}
+
+type TmdbReleaseDatesResponse = {
+  id: number
+  results: {
+    iso_3166_1: string
+    release_dates: TmdbRelease[]
+  }[]
+}
+
+const digitalReleaseType = 4
 
 function authHeaders(): HeadersInit {
   const token = import.meta.env.VITE_TMDB_ACCESS_TOKEN
@@ -132,6 +161,66 @@ export async function getWatchProviders(
       rent: mapProviders(options.rent),
       stream: mapProviders(options.flatrate),
     }
+  }
+
+  return { id: data.id, results }
+}
+
+function todayKey(): string {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, "0")
+  const day = String(now.getDate()).padStart(2, "0")
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+export function formatReleaseDate(iso: string): string {
+  const [year, month, day] = iso.slice(0, 10).split("-").map(Number)
+  return new Intl.DateTimeFormat("en", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+    year: "numeric",
+  }).format(new Date(Date.UTC(year, month - 1, day)))
+}
+
+export function releaseForCountry(
+  dates: ReleaseDates | undefined,
+  country: string
+): MovieRelease | null {
+  const releases = dates?.results[country]
+  if (!releases?.length) return null
+
+  const today = todayKey()
+  const upcoming = releases
+    .filter((release) => release.date.slice(0, 10) > today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+  const chosen =
+    upcoming[0] ??
+    [...releases].sort((a, b) => a.date.localeCompare(b.date)).at(-1)
+
+  if (!chosen) return null
+
+  return {
+    date: formatReleaseDate(chosen.date),
+    upcoming: chosen.date.slice(0, 10) > today,
+  }
+}
+
+export async function getReleaseDates(movieId: number): Promise<ReleaseDates> {
+  const data = await tmdb<TmdbReleaseDatesResponse>(
+    `/movie/${movieId}/release_dates`
+  )
+
+  const results: Record<string, CountryRelease[]> = {}
+  for (const country of data.results) {
+    results[country.iso_3166_1] = country.release_dates
+      .filter(
+        (release) =>
+          release.type === digitalReleaseType && release.release_date
+      )
+      .map((release) => ({
+        date: release.release_date,
+      }))
   }
 
   return { id: data.id, results }
