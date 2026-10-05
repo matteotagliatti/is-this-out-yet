@@ -35,7 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { addReleaseToCalendar } from "@/lib/calendar"
 import { countries, countryLabel } from "@/lib/countries"
@@ -312,7 +311,7 @@ export function App() {
                 <div className="flex flex-col">
                   {groups.map((group, index) => (
                     <div key={group.key}>
-                      {index > 0 ? <Separator className="my-4" /> : null}
+                      {index > 0 ? <div className="my-4" /> : null}
                       <div className="flex flex-col gap-3">
                         <Badge variant="secondary">{group.label}</Badge>
                         <ProviderList providers={group.providers} />
