@@ -1,5 +1,6 @@
 export type Movie = {
   id: number
+  posterPath: string | null
   title: string
   year: string | null
 }
@@ -42,6 +43,7 @@ const TMDB_API = "https://api.themoviedb.org/3"
 
 type TmdbMovie = {
   id: number
+  poster_path?: string | null
   title: string
   release_date?: string
 }
@@ -131,6 +133,10 @@ export function providerLogoUrl(logoPath: string): string {
   return `https://image.tmdb.org/t/p/w45${logoPath}`
 }
 
+export function posterUrl(posterPath: string): string {
+  return `https://image.tmdb.org/t/p/w92${posterPath}`
+}
+
 export async function searchMovies(query: string): Promise<Movie[]> {
   const data = await tmdb<TmdbSearchResponse>("/search/movie", {
     include_adult: "false",
@@ -141,6 +147,7 @@ export async function searchMovies(query: string): Promise<Movie[]> {
     .filter((movie) => movie.title)
     .map((movie) => ({
       id: movie.id,
+      posterPath: movie.poster_path ?? null,
       title: movie.title,
       year: movie.release_date ? movie.release_date.slice(0, 4) : null,
     }))

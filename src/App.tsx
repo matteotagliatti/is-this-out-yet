@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { CalendarPlusIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react"
 import { useState } from "react"
 import { CircleFlag } from "react-circle-flags"
-import MovieSearch from "@/components/movie-search"
+import MovieSearch, { MoviePoster } from "@/components/movie-search"
 import { useTheme } from "@/components/theme-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -241,12 +241,15 @@ export function App() {
 
         {movie ? (
           <Card>
-            <CardHeader>
-              <CardTitle>{movie.title}</CardTitle>
-              <CardDescription>
-                {movie.year ? `${movie.year} · ` : null}
-                {selectedCountry}
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center gap-3">
+              <MoviePoster posterPath={movie.posterPath} />
+              <div className="flex min-w-0 flex-col gap-1">
+                <CardTitle>{movie.title}</CardTitle>
+                <CardDescription>
+                  {movie.year ? `${movie.year} · ` : null}
+                  {selectedCountry}
+                </CardDescription>
+              </div>
             </CardHeader>
             <CardPanel>
               {isLoading ? (

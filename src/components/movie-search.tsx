@@ -12,7 +12,26 @@ import {
   AutocompleteStatus,
 } from "@/components/ui/autocomplete"
 import { Spinner } from "@/components/ui/spinner"
-import { searchMovies, type Movie } from "@/lib/tmdb"
+import { posterUrl, searchMovies, type Movie } from "@/lib/tmdb"
+
+export function MoviePoster({ posterPath }: { posterPath: string | null }) {
+  if (!posterPath) {
+    return (
+      <div
+        aria-hidden="true"
+        className="h-12 w-8 shrink-0 rounded-sm bg-muted"
+      />
+    )
+  }
+
+  return (
+    <img
+      alt=""
+      className="h-12 w-8 shrink-0 rounded-sm object-cover"
+      src={posterUrl(posterPath)}
+    />
+  )
+}
 
 function useDebouncedValue(value: string, delay: number) {
   const [debounced, setDebounced] = useState(value)
@@ -122,13 +141,16 @@ export default function MovieSearch({
           <AutocompleteList>
             {(movie: Movie) => (
               <AutocompleteItem key={movie.id} value={movie}>
-                <div className="flex w-full flex-col gap-1">
-                  <div className="font-medium">{movie.title}</div>
-                  {movie.year ? (
-                    <div className="text-xs text-muted-foreground">
-                      {movie.year}
-                    </div>
-                  ) : null}
+                <div className="flex w-full items-center gap-2">
+                  <MoviePoster posterPath={movie.posterPath} />
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <div className="font-medium">{movie.title}</div>
+                    {movie.year ? (
+                      <div className="text-xs text-muted-foreground">
+                        {movie.year}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </AutocompleteItem>
             )}
