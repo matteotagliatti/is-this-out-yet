@@ -1,21 +1,18 @@
-# React + TypeScript + Vite + shadcn/ui
+# Is this out yet?
 
-This is a template for a new Vite project with React, TypeScript, and shadcn/ui.
+Search for a movie and see where you can watch it in the country you pick.
 
-## Adding components
+Choose a country from the flag in the top right, then search TMDB for a title. The app shows streaming, rent, and buy options for that country.
 
-To add components to your app, run the following command:
+## Run
 
 ```bash
-npx shadcn@latest add button
+pnpm install
+pnpm dev
 ```
 
-This will place the ui components in the `src/components` directory.
+Add your TMDB read token to `.env`:
 
-## Using components
-
-To use the components in your app, import them as follows:
-
-```tsx
-import { Button } from "@/components/ui/button"
+```
+VITE_TMDB_ACCESS_TOKEN=your_token
 ```
