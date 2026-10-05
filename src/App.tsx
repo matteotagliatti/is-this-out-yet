@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react"
+import { CalendarPlusIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react"
 import { useState } from "react"
 import { CircleFlag } from "react-circle-flags"
 import MovieSearch from "@/components/movie-search"
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card"
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
@@ -36,6 +37,7 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
+import { addReleaseToCalendar } from "@/lib/calendar"
 import { countries, countryLabel } from "@/lib/countries"
 import {
   getReleaseDates,
@@ -280,6 +282,25 @@ export function App() {
                               : `No digital release date in ${selectedCountry} yet.`}
                       </EmptyDescription>
                     </EmptyHeader>
+                    {release?.upcoming ? (
+                      <EmptyContent>
+                        <Button
+                          onClick={() =>
+                            addReleaseToCalendar({
+                              country: selectedCountry,
+                              isoDate: release.isoDate,
+                              movieId: movie.id,
+                              title: movie.title,
+                            })
+                          }
+                          type="button"
+                          variant="outline"
+                        >
+                          <CalendarPlusIcon aria-hidden="true" />
+                          Add to Calendar
+                        </Button>
+                      </EmptyContent>
+                    ) : null}
                   </Empty>
                 )
               ) : null}

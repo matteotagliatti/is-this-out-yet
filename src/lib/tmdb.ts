@@ -34,6 +34,7 @@ export type ReleaseDates = {
 
 export type MovieRelease = {
   date: string
+  isoDate: string
   upcoming: boolean
 }
 
@@ -202,6 +203,7 @@ export function releaseForCountry(
 
   return {
     date: formatReleaseDate(chosen.date),
+    isoDate: chosen.date.slice(0, 10),
     upcoming: chosen.date.slice(0, 10) > today,
   }
 }
@@ -215,8 +217,7 @@ export async function getReleaseDates(movieId: number): Promise<ReleaseDates> {
   for (const country of data.results) {
     results[country.iso_3166_1] = country.release_dates
       .filter(
-        (release) =>
-          release.type === digitalReleaseType && release.release_date
+        (release) => release.type === digitalReleaseType && release.release_date
       )
       .map((release) => ({
         date: release.release_date,
