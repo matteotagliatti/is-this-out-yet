@@ -33,6 +33,24 @@ export function MoviePoster({ posterPath }: { posterPath: string | null }) {
   )
 }
 
+function movieFromPress(
+  event: Event,
+  results: readonly Movie[],
+  highlighted: Movie | undefined,
+  value: string
+) {
+  const target = event.target
+  const element = target instanceof Element ? target : null
+  const id = Number(
+    element?.closest("[data-movie-id]")?.getAttribute("data-movie-id")
+  )
+  const pressed = results.find((movie) => movie.id === id)
+  if (pressed) return pressed
+
+  if (highlighted?.title === value) return highlighted
+  return results.find((movie) => movie.title === value)
+}
+
 function useDebouncedValue(value: string, delay: number) {
   const [debounced, setDebounced] = useState(value)
 
@@ -103,11 +121,12 @@ export default function MovieSearch({
         setSearchValue(value)
 
         if (details.reason === "item-press") {
-          const highlighted = highlightedRef.current
-          const movie =
-            highlighted && highlighted.title === value
-              ? highlighted
-              : searchResults.find((item) => item.title === value)
+          const movie = movieFromPress(
+            details.event,
+            searchResults,
+            highlightedRef.current,
+            value
+          )
           if (movie) {
             selectedTitleRef.current = movie.title
             onSelect(movie)
@@ -140,7 +159,11 @@ export default function MovieSearch({
           </AutocompleteStatus>
           <AutocompleteList>
             {(movie: Movie) => (
-              <AutocompleteItem key={movie.id} value={movie}>
+              <AutocompleteItem
+                data-movie-id={movie.id}
+                key={movie.id}
+                value={movie}
+              >
                 <div className="flex w-full items-center gap-2">
                   <MoviePoster posterPath={movie.posterPath} />
                   <div className="flex min-w-0 flex-col gap-0.5">
