@@ -7,8 +7,8 @@ Choose a country from the flag in the top right, then search TMDB for a title. T
 ## Run
 
 ```bash
-pnpm install
-pnpm dev
+bun install
+bun run dev
 ```
 
 Add your TMDB read token to `.env`:
