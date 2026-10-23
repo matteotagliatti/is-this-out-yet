@@ -5,7 +5,7 @@ export type Country = {
 
 export const countries: Country[] = [
   { label: "United States", value: "US" },
-  { label: "Italy", value: "IT" }
+  { label: "Italy", value: "IT" },
 ]
 
 export function countryLabel(code: string): string {
